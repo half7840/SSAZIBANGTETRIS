@@ -20,7 +20,7 @@ const shapes = [
 // 랜덤 블록 생성
 function getRandomShape() {
     const shape = shapes[Math.floor(Math.random() * shapes.length)];
-    return { ...shape, x: 4, y: 0 };  // x, y 좌표 추가
+    return { ...shape, x: 4, y: 0 };  // x: 가운데, y: 최상단에서 시작
 }
 
 let currentShape = getRandomShape();
