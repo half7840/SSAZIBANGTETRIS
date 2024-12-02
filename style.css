@@ -1,0 +1,38 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: Arial, sans-serif;
+    text-align: center;
+    background-color: #222;
+    color: white;
+}
+
+.game-container {
+    margin-top: 50px;
+}
+
+#game-board {
+    display: grid;
+    grid-template-columns: repeat(10, 30px); /* 10개의 열 */
+    grid-template-rows: repeat(20, 30px); /* 20개의 행 */
+    gap: 1px;
+    background-color: #111;
+    width: 320px;
+    height: 600px;
+    margin: 0 auto;
+}
+
+.block {
+    width: 30px;
+    height: 30px;
+    background-color: #999;
+}
+
+#score {
+    margin-top: 20px;
+    font-size: 24px;
+}
