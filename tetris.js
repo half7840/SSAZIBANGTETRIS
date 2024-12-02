@@ -1,35 +1,48 @@
-// 테트로미노 색상 매핑
-const tetrominoColors = {
-    I: 'cyan',    // I형은 cyan
-    O: 'yellow',  // O형은 yellow
-    T: 'purple',  // T형은 purple
-    S: 'green',   // S형은 green
-    Z: 'red',     // Z형은 red
-    L: 'orange',  // L형은 orange
-    J: 'blue'     // J형은 blue
+// 키 설정
+const keyBindings = {
+    left: 'ArrowLeft',   // 왼쪽 화살표
+    right: 'ArrowRight', // 오른쪽 화살표
+    rotate: 'ArrowUp',   // 위 화살표
+    rotateAlt: 'KeyZ',   // Z 키로도 회전
+    down: 'ArrowDown',   // 아래 화살표
+    hardDrop: 'Space',   // 스페이스바 (즉시 내려가기)
+    pause: 'KeyP',       // P키 (일시정지)
+    restart: 'KeyR',     // R키 (게임 재시작)
+    hold: 'KeyC'         // C키 (홀드 기능)
 };
 
+// 현재 게임 상태
+let isPaused = false;
+let isGameOver = false;
+let holdPiece = null; // 홀드된 테트로미노
+
+// 게임판과 점수 등 기타 변수들
 const boardWidth = 10;
 const boardHeight = 20;
 let gameBoard = Array.from(Array(boardHeight), () => Array(boardWidth).fill(0));
 let currentPiece, currentPosition, score = 0, linesCleared = 0, level = 1;
 let gameInterval;
 
-const boardElement = document.getElementById('game-board');
-const scoreElement = document.getElementById('score');
-const linesElement = document.getElementById('lines-cleared');
-const levelElement = document.getElementById('level');
-const startButton = document.getElementById('start-btn');
+// 테트로미노 색상 매핑
+const tetrominoColors = {
+    I: 'cyan',
+    O: 'yellow',
+    T: 'purple',
+    S: 'green',
+    Z: 'red',
+    L: 'orange',
+    J: 'blue'
+};
 
 // 테트로미노 모양 정의
 const tetrominoes = [
-    { shape: [[1, 1, 1, 1]], color: 'I' },   // I형
-    { shape: [[1, 1], [1, 1]], color: 'O' }, // O형
-    { shape: [[0, 1, 0], [1, 1, 1]], color: 'T' }, // T형
-    { shape: [[1, 1, 0], [0, 1, 1]], color: 'S' }, // S형
-    { shape: [[0, 1, 1], [1, 1, 0]], color: 'Z' }, // Z형
-    { shape: [[1, 0, 0], [1, 1, 1]], color: 'L' }, // L형
-    { shape: [[0, 0, 1], [1, 1, 1]], color: 'J' }  // J형
+    { shape: [[1, 1, 1, 1]], color: 'I' },
+    { shape: [[1, 1], [1, 1]], color: 'O' },
+    { shape: [[0, 1, 0], [1, 1, 1]], color: 'T' },
+    { shape: [[1, 1, 0], [0, 1, 1]], color: 'S' },
+    { shape: [[0, 1, 1], [1, 1, 0]], color: 'Z' },
+    { shape: [[1, 0, 0], [1, 1, 1]], color: 'L' },
+    { shape: [[0, 0, 1], [1, 1, 1]], color: 'J' }
 ];
 
 // 랜덤으로 테트로미노 반환
@@ -50,11 +63,11 @@ function drawBoard() {
             cellElement.style.height = '30px';
             cellElement.style.border = '1px solid #333';
 
-            // 색상 적용 (블록이 있으면 색상을 지정)
+            // 색상 적용
             if (cell) {
-                cellElement.style.backgroundColor = tetrominoColors[cell]; // 색상 적용
+                cellElement.style.backgroundColor = tetrominoColors[cell];
             } else {
-                cellElement.style.backgroundColor = 'black'; // 빈 셀은 검정색
+                cellElement.style.backgroundColor = 'black';
             }
 
             rowElement.appendChild(cellElement);
@@ -68,10 +81,8 @@ function placePiece() {
     currentPiece.shape.forEach((row, y) => {
         row.forEach((cell, x) => {
             if (cell) {
-                // 현재 블록 색상 적용
-                const color = tetrominoColors[currentPiece.color];
                 if (currentPosition.y + y >= 0) {
-                    gameBoard[currentPosition.y + y][currentPosition.x + x] = currentPiece.color; // 색상으로 저장
+                    gameBoard[currentPosition.y + y][currentPosition.x + x] = currentPiece.color;
                 }
             }
         });
@@ -100,7 +111,8 @@ function moveDown() {
         currentPiece = randomTetromino();
         currentPosition = { x: 3, y: 0 };
         if (collision()) {
-            clearInterval(gameInterval);
+            isGameOver = true;
+            clearInterval(gameInterval); // 게임 오버 시 게임 루프 종료
             alert('Game Over');
         }
     }
@@ -120,22 +132,98 @@ function collision() {
     });
 }
 
+// 회전
+function rotatePiece() {
+    const newShape = currentPiece.shape[0].map((_, index) => currentPiece.shape.map(row => row[index])).reverse();
+    const newPiece = { ...currentPiece, shape: newShape };
+    currentPiece = newPiece;
+    if (collision()) {
+        currentPiece = { ...currentPiece, shape: currentPiece.shape.reverse() };
+    }
+}
+
+// 홀드 기능
+function holdCurrentPiece() {
+    if (holdPiece === null) {
+        holdPiece = currentPiece;
+        currentPiece = randomTetromino();
+        currentPosition = { x: 3, y: 0 };
+    } else {
+        const temp = currentPiece;
+        currentPiece = holdPiece;
+        holdPiece = temp;
+        currentPosition = { x: 3, y: 0 };
+    }
+}
+
 // 게임 시작
 function startGame() {
-    gameBoard = Array.from(Array(boardHeight), () => Array(boardWidth).fill(0)); // 빈 보드로 초기화
-    score = 0;
-    linesCleared = 0;
-    level = 1;
-    currentPiece = randomTetromino(); // 랜덤 테트로미노 생성
+    if (isGameOver) {
+        // 게임이 끝났을 경우 초기화
+        gameBoard = Array.from(Array(boardHeight), () => Array(boardWidth).fill(0));
+        score = 0;
+        linesCleared = 0;
+        level = 1;
+        isGameOver = false;
+        holdPiece = null;
+    }
+
+    currentPiece = randomTetromino();
     currentPosition = { x: 3, y: 0 };
+    isPaused = false;
+
     gameInterval = setInterval(() => {
-        moveDown();
-        drawBoard();
-        scoreElement.textContent = score;
-        linesElement.textContent = linesCleared;
-        levelElement.textContent = level;
+        if (!isPaused) {
+            moveDown();
+            drawBoard();
+            scoreElement.textContent = score;
+            linesElement.textContent = linesCleared;
+            levelElement.textContent = level;
+        }
     }, 1000 / level);
 }
 
-// 시작 버튼 클릭 시 게임 시작
-startButton.addEventListener('click', startGame);
+// 게임 일시정지
+function togglePause() {
+    isPaused = !isPaused;
+}
+
+// 키보드 이벤트 처리
+document.addEventListener('keydown', (event) => {
+    if (isGameOver) return; // 게임이 끝나면 입력 무시
+
+    switch (event.code) {
+        case keyBindings.left:
+            currentPosition.x--;
+            if (collision()) currentPosition.x++;
+            break;
+
+        case keyBindings.right:
+            currentPosition.x++;
+            if (collision()) currentPosition.x--;
+            break;
+
+        case keyBindings.rotate:
+        case keyBindings.rotateAlt:
+            rotatePiece();
+            break;
+
+        case keyBindings.down:
+            moveDown();
+            break;
+
+        case keyBindings.hardDrop:
+            while (!collision()) currentPosition.y++;
+            currentPosition.y--;
+            placePiece();
+            checkLines();
+            currentPiece = randomTetromino();
+            currentPosition = { x: 3, y: 0 };
+            break;
+
+        case keyBindings.pause:
+            togglePause();
+            break;
+
+        case keyBindings.restart:
+            clear
